@@ -11,6 +11,7 @@
 #define var __auto_type
 #define let var const
 
+#define ACC_LEN 64
 #define AMOUNT_LEN 64
 #define BLOCK_ZERO "0000000000000000000000000000000000000000000000000000000000000000"
 #define BLOCK_LEN sizeof(BLOCK_ZERO)
@@ -31,8 +32,8 @@ parse(string str) {
 
 static size_t
 writeres(void *ptr, size_t size, size_t nmemb, void *userp) {
-	json_object **res = userp;
-	*res = parse(ptr);
+	var res = (json_object **)userp;
+	*res = parse((string)ptr);
 	return size * nmemb;
 }
 
