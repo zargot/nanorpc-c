@@ -16,11 +16,13 @@
 #define BLOCK_ZERO "0000000000000000000000000000000000000000000000000000000000000000"
 #define BLOCK_LEN sizeof(BLOCK_ZERO)
 
+typedef const char *string;
+
 static CURL *curl;
-static const char *server, *wallet;
+static string server, *wallet;
 
 static json_object *
-parse(const char *str) {
+parse(string str) {
 	enum json_tokener_error err;
 	var json = json_tokener_parse_verbose(str, &err);
 	if (err)
@@ -36,7 +38,7 @@ writeres(void *ptr, size_t size, size_t nmemb, void *userp) {
 }
 
 static json_object *
-request(const char *server, const char *fmt, va_list args) {
+request(string server, string fmt, va_list args) {
 	static char buf[1024];
 	const char prefix[] = "data=";
 	strcpy(buf, prefix);
@@ -59,7 +61,7 @@ request(const char *server, const char *fmt, va_list args) {
 }
 
 static bool
-request_str(const char *server, const char *key, size_t len, char *buf, const char *fmt, ...) {
+request_str(string server, string key, size_t len, char *buf, string fmt, ...) {
 	va_list args;
 	va_start(args, fmt);
 	var res = request(server, fmt, args);
@@ -73,7 +75,7 @@ request_str(const char *server, const char *key, size_t len, char *buf, const ch
 }
 
 static bool
-nano_init(const char *node_addr, const char *wallet) {
+nano_init(string node_addr, string wallet) {
 	if (curl_global_init(CURL_GLOBAL_ALL))
 		return false;
 	if (!(curl = curl_easy_init()))
@@ -89,14 +91,14 @@ nano_quit() {
 }
 
 bool
-nano_balance(const char *acc, char balance[AMOUNT_LEN]) {
+nano_balance(string acc, char balance[AMOUNT_LEN]) {
 	return request_str(server,
 			"balance", AMOUNT_LEN, balance,
 			"{account_balance: {account: %s}}", acc);
 }
 
 bool
-nano_send(const char *acc, const char *dst, const char *amount) {
+nano_send(string acc, string dst, string amount) {
 	char block[BLOCK_LEN];
 	if (!request_str(server, "block", sizeof(block), block,
 			"wallet: %s, source: %s, destination: %s, amount: %s}",
