@@ -91,6 +91,13 @@ nano_quit() {
 }
 
 bool
+nano_create(char *acc) {
+	return request_str(server,
+			"account", ACC_LEN, acc,
+			"{'action': 'account_create', 'wallet': '%s'}", wallet);
+}
+
+bool
 nano_balance(string acc, char balance[AMOUNT_LEN]) {
 	return request_str(server,
 			"balance", AMOUNT_LEN, balance,
