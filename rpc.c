@@ -11,10 +11,9 @@
 #define var __auto_type
 #define let var const
 
-#define ACC_LEN 64
-#define AMOUNT_LEN 64
-#define BLOCK_ZERO "0000000000000000000000000000000000000000000000000000000000000000"
-#define BLOCK_LEN sizeof(BLOCK_ZERO)
+#define LEN 64
+#define INVALID_BLOCK "0000000000000000000000000000000000000000000000000000000000000000"
+static_assert(LEN == sizeof(INVALID_BLOCK) - 1, "");
 
 typedef const char *string;
 
@@ -93,20 +92,20 @@ nano_quit() {
 bool
 nano_create(char *acc) {
 	return request_str(server,
-			"account", ACC_LEN, acc,
+			"account", LEN, acc,
 			"{'action': 'account_create', 'wallet': '%s'}", wallet);
 }
 
 bool
-nano_balance(string acc, char balance[AMOUNT_LEN]) {
+nano_balance(string acc, char balance[LEN]) {
 	return request_str(server,
-			"balance", AMOUNT_LEN, balance,
+			"balance", LEN, balance,
 			"{'action': 'account_balance', 'account': '%s'}", acc);
 }
 
 bool
 nano_send(string acc, string dst, string amount, string guid) {
-	char block[BLOCK_LEN];
+	char block[LEN];
 	if (!request_str(server,
 			"block", sizeof(block), block,
 			"{"
@@ -120,7 +119,7 @@ nano_send(string acc, string dst, string amount, string guid) {
 			wallet, acc, dst, amount, guid)) {
 		return false;
 	}
-	if (!memcmp(block, BLOCK_ZERO, sizeof(block) - 1))
+	if (!memcmp(block, INVALID_BLOCK, LEN))
 		return false;
 	return true;
 }
