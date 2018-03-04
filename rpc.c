@@ -1,3 +1,5 @@
+// blocking, not thread safe
+
 #include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -6,14 +8,13 @@
 #include <curl/curl.h>
 #include <json-c/json.h>
 
-// blocking, not thread safe
-
 #define var __auto_type
 #define let var const
 #define defer 
 
 #define AMOUNT_LEN 64
 #define BLOCK_ZERO "0000000000000000000000000000000000000000000000000000000000000000"
+#define BLOCK_LEN sizeof(BLOCK_ZERO)
 
 static CURL *curl;
 static const char *server, *wallet;
@@ -96,7 +97,7 @@ nano_balance(const char *acc, char balance[AMOUNT_LEN]) {
 
 bool
 nano_send(const char *acc, const char *dst, const char *amount) {
-	char block[sizeof(BLOCK_ZERO)];
+	char block[BLOCK_LEN];
 	if (!request_str(server, "block", sizeof(block), block,
 			"wallet: %s, source: %s, destination: %s, amount: %s}",
 			wallet, acc, dst, amount)) {
