@@ -10,7 +10,6 @@
 
 #define var __auto_type
 #define let var const
-#define defer 
 
 #define AMOUNT_LEN 64
 #define BLOCK_ZERO "0000000000000000000000000000000000000000000000000000000000000000"
