@@ -101,15 +101,23 @@ bool
 nano_balance(string acc, char balance[AMOUNT_LEN]) {
 	return request_str(server,
 			"balance", AMOUNT_LEN, balance,
-			"{account_balance: {account: %s}}", acc);
+			"{'action': 'account_balance', 'account': '%s'}", acc);
 }
 
 bool
-nano_send(string acc, string dst, string amount) {
+nano_send(string acc, string dst, string amount, string guid) {
 	char block[BLOCK_LEN];
-	if (!request_str(server, "block", sizeof(block), block,
-			"wallet: %s, source: %s, destination: %s, amount: %s}",
-			wallet, acc, dst, amount)) {
+	if (!request_str(server,
+			"block", sizeof(block), block,
+			"{"
+			"'action': 'send',"
+			"'wallet': '%s',"
+			"'source': '%s',"
+			"'destination': '%s',"
+			"'amount': '%s',"
+			"'id': '%s'"
+			"}",
+			wallet, acc, dst, amount, guid)) {
 		return false;
 	}
 	if (!memcmp(block, BLOCK_ZERO, sizeof(block) - 1))
