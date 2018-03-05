@@ -25,7 +25,7 @@ static_assert(LEN == sizeof(INVALID_BLOCK) - 1, "");
 typedef const char *string;
 
 static CURL *curl;
-static string server, *wallet;
+static string server, wallet;
 
 static void
 put(json_object **obj) {
