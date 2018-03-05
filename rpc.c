@@ -1,4 +1,9 @@
 // blocking, not thread safe
+//
+// TODO:
+// - test create
+// - test send
+// - validate input
 
 #include <assert.h>
 #include <stdarg.h>
@@ -105,7 +110,6 @@ nano_quit() {
 	curl_global_cleanup();
 }
 
-// TODO: test
 bool
 nano_create(char *acc) {
 	return request_str(server,
@@ -122,7 +126,6 @@ nano_balance(string acc, char balance[LEN]) {
 			acc);
 }
 
-// TODO: test
 bool
 nano_send(string acc, string dst, string amount, string guid) {
 	char block[LEN];
