@@ -11,6 +11,12 @@
 #define var __auto_type
 #define let var const
 
+#define RET_ERR(ret, str) { \
+	fprintf(stderr, "EE: %d:%s\n", __LINE__, str); \
+	return ret; \
+}
+
+#define DEFER_PUT __attribute__((cleanup(put))) 
 #define LEN 64
 #define INVALID_BLOCK "0000000000000000000000000000000000000000000000000000000000000000"
 static_assert(LEN == sizeof(INVALID_BLOCK) - 1, "");
@@ -20,12 +26,19 @@ typedef const char *string;
 static CURL *curl;
 static string server, *wallet;
 
+static void
+put(json_object **obj) {
+	assert(obj);
+	if (*obj)
+		json_object_put(*obj);
+}
+
 static json_object *
 parse(string str) {
 	enum json_tokener_error err;
 	var json = json_tokener_parse_verbose(str, &err);
 	if (err)
-		fprintf(stderr, "%s\n", json_tokener_error_desc(err));
+		RET_ERR(NULL, json_tokener_error_desc(err));
 	return json;
 }
 
@@ -50,12 +63,8 @@ request(string server, string fmt, va_list args) {
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeres);
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &res);
 	let err = curl_easy_perform(curl);
-	if (err) {
-		fprintf(stderr, "%s\n", curl_easy_strerror(err));
-		if (res)
-			json_object_put(res);
-		res = NULL;
-	}
+	if (err)
+		RET_ERR(NULL, curl_easy_strerror(err));
 	return res;
 }
 
@@ -63,13 +72,16 @@ static bool
 request_str(string server, string key, size_t len, char *buf, string fmt, ...) {
 	va_list args;
 	va_start(args, fmt);
-	var res = request(server, fmt, args);
+	DEFER_PUT json_object *res = request(server, fmt, args);
 	va_end(args);
 	if (!res)
-		return false;
-	let str = json_object_get_string(json_object_object_get(res, key));
-	strncpy(buf, str, len);
-	json_object_put(res);
+		RET_ERR(false, "");
+	json_object *value;
+	if (!json_object_object_get_ex(res, key, &value))
+		RET_ERR(false, "invalid obj or key");
+	if (!json_object_is_type(value, json_type_string))
+		RET_ERR(false, "invalid type");
+	strncpy(buf, json_object_get_string(value), len);
 	return true;
 }
 
