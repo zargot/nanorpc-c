@@ -144,3 +144,22 @@ nano_send(string acc, string dst, string amount, string guid) {
 	return true;
 }
 
+int
+main(int argc, char **argv) {
+	if (argc < 4) {
+		printf("usage: %s server wallet account\n", argv[0]);
+		return 1;
+	}
+
+	if (!nano_init(argv[1], argv[2]))
+		return 2;
+	atexit(nano_quit);
+
+	char balance[LEN];
+	if (!nano_balance(argv[3], balance))
+		return 3;
+	puts(balance);
+
+	return 0;
+}
+
