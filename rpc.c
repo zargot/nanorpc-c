@@ -89,12 +89,13 @@ request_str(string server, string key, size_t len, char *buf, string fmt, ...) {
 }
 
 static bool
-nano_init(string node_addr, string wallet) {
+nano_init(string node_addr, string wallet_addr) {
 	if (curl_global_init(CURL_GLOBAL_ALL))
 		return false;
 	if (!(curl = curl_easy_init()))
 		return false;
 	server = node_addr;
+	wallet = wallet_addr;
 	return true;
 }
 
