@@ -105,32 +105,36 @@ nano_quit() {
 	curl_global_cleanup();
 }
 
+// TODO: test
 bool
 nano_create(char *acc) {
 	return request_str(server,
 			"account", LEN, acc,
-			"{'action': 'account_create', 'wallet': '%s'}", wallet);
+			"{\"action\": \"account_create\", \"wallet\": \"%s\"}",
+			wallet);
 }
 
 bool
 nano_balance(string acc, char balance[LEN]) {
 	return request_str(server,
 			"balance", LEN, balance,
-			"{'action': 'account_balance', 'account': '%s'}", acc);
+			"{\"action\": \"account_balance\", \"account\": \"%s\"}",
+			acc);
 }
 
+// TODO: test
 bool
 nano_send(string acc, string dst, string amount, string guid) {
 	char block[LEN];
 	if (!request_str(server,
 			"block", sizeof(block), block,
 			"{"
-			"'action': 'send',"
-			"'wallet': '%s',"
-			"'source': '%s',"
-			"'destination': '%s',"
-			"'amount': '%s',"
-			"'id': '%s'"
+			"\"action\": \"send\","
+			"\"wallet\": \"%s\","
+			"\"source\": \"%s\","
+			"\"destination\": \"%s\","
+			"\"amount\": \"%s\","
+			"\"id\": \"%s\""
 			"}",
 			wallet, acc, dst, amount, guid)) {
 		return false;
