@@ -53,17 +53,19 @@ writeres(void *ptr, size_t size, size_t nmemb, void *userp) {
 static json_object *
 request(string server, string fmt, va_list args) {
 	static char buf[1024];
-	const char prefix[] = "data=";
-	strcpy(buf, prefix);
-	let len = vsnprintf(buf + sizeof(prefix), sizeof(buf), fmt, args);
-	assert(buf[sizeof(buf) - 2] == 0);
+	let len = vsnprintf(buf, sizeof(buf), fmt, args);
+	assert(len < sizeof(buf));
 
 	json_object *res = NULL;
+	var ctype = curl_slist_append(NULL, "Content-Type: application/json");
 	curl_easy_setopt(curl, CURLOPT_URL, server);
+	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, ctype);
+	curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, len);
 	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, buf);
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeres);
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &res);
 	let err = curl_easy_perform(curl);
+	curl_slist_free_all(ctype);
 	if (err)
 		RET_ERR(NULL, curl_easy_strerror(err));
 	return res;
