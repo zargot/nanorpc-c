@@ -17,6 +17,7 @@
 
 #define var __auto_type
 #define let var const
+#define countof(a) (sizeof(a) / sizeof((a)[0]))
 
 #define RET_ERR(ret, fmt, ...) { \
 	fprintf(stderr, "EE:%d: ", __LINE__); \
@@ -30,6 +31,7 @@
 #define INVALID_BLOCK "0000000000000000000000000000000000000000000000000000000000000000"
 static_assert(LEN == sizeof(INVALID_BLOCK) - 1, "");
 
+typedef unsigned uint;
 typedef const char *string;
 
 static CURL *curl;
@@ -52,19 +54,17 @@ validate_str(string s) {
 	return true;
 }
 
-static size_t
-encode(char **out, size_t n, ...) {
-	static char buf[1024];
+static bool
+encode(uint c, string v[], size_t *outlen, char **outbuf) {
+	static char buf[512];
+	memset(buf, 0, sizeof(buf));
+	int len = 0;
 
-	int len = sprintf(buf, "{");
-	assert(len == 1);
-	va_list ap;
-	va_start(ap, n);
-	while (n--) {
-		let key = va_arg(ap, string);
-		let value = va_arg(ap, string);
+	buf[len++] = '{';
+	for (uint i = 0; i < c; i += 2) {
+		let key = v[i];
+		let value = v[i + 1];
 		if (validate_str(key) && validate_str(value)) {
-			assert(len > 0);
 			let diff = snprintf(buf + len, sizeof(buf) - len,
 					"\"%s\":\"%s\",", key, value);
 			if (diff > 0) {
@@ -74,15 +74,16 @@ encode(char **out, size_t n, ...) {
 		}
 		RET_ERR(0, "invalid key/value: %s/%s", key, value);
 	}
-	va_end(ap);
+	assert(len > 0);
 	len = fmax(len-1, 1);
-	if (len + 2 >= sizeof(buf))
-		RET_ERR(0, "buffer overflow: %d/%zu", len, sizeof(buf));
-	len += sprintf(buf + len, "}");
+	if (len + 1 >= sizeof(buf))
+		RET_ERR(0, "buffer overflow: %d/%zu", len + 2, sizeof(buf));
+	buf[len++] = '}';
 	assert(len <= sizeof(buf));
 
-	*out = buf;
-	return len > 0 ? len : 0;
+	*outlen = len;
+	*outbuf = buf;
+	return true;
 }
 
 static json_object *
@@ -102,16 +103,18 @@ writeres(void *ptr, size_t size, size_t nmemb, void *userp) {
 }
 
 static json_object *
-request(string server, size_t len, string req) {
-	if (!len || !req || !*req)
-		RET_ERR(NULL, "invalid request: %s", req);
+request(string server, size_t reqc, string reqv[]) {
+	char *buf;
+	size_t len;
+	if (!reqc || !reqv || !encode(reqc, reqv, &len, &buf))
+		RET_ERR(NULL, "invalid request");
 
 	json_object *res = NULL;
 	var ctype = curl_slist_append(NULL, "Content-Type: application/json");
 	curl_easy_setopt(curl, CURLOPT_URL, server);
 	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, ctype);
 	curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, len);
-	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, req);
+	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, buf);
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeres);
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &res);
 	let err = curl_easy_perform(curl);
@@ -122,8 +125,8 @@ request(string server, size_t len, string req) {
 }
 
 static bool
-request_str(string server, size_t reqlen, string req, string key, size_t len, char *buf) {
-	DEFER_PUT json_object *res = request(server, reqlen, req);
+request_str(string server, uint reqc, string reqv[], string key, size_t len, char *buf) {
+	DEFER_PUT json_object *res = request(server, reqc, reqv);
 	if (!res)
 		RET_ERR(false, "");
 	json_object *value;
@@ -154,30 +157,34 @@ nano_quit() {
 
 bool
 nano_create(char *acc) {
-	char *req;
-	let len = encode(&req, 2, "action","account_create", "wallet",wallet);
-	return request_str(server, len, req, "account", LEN, acc);
+	string req[] = {
+		"action", "account_create",
+		"wallet", wallet,
+	};
+	return request_str(server, countof(req), req, "account", LEN, acc);
 }
 
 bool
 nano_balance(string acc, char balance[LEN]) {
-	char *req;
-	let len = encode(&req, 2, "action","account_balance", "account",acc);
-	return request_str(server, len, req, "balance", LEN, balance);
+	string req[] = {
+		"action", "account_balance",
+		"account", acc,
+	};
+	return request_str(server, countof(req), req, "balance", LEN, balance);
 }
 
 bool
 nano_send(string acc, string dst, string amount, string guid) {
 	char res[LEN];
-	char *req;
-	let reqlen = encode(&req, 6,
+	string req[] = {
 			"action", "send",
 			"wallet", wallet,
 			"source", acc,
 			"destination", dst,
 			"amount", amount,
-			"id", guid);
-	if (!request_str(server, reqlen, req, "block", sizeof(res), res))
+			"id", guid,
+	};
+	if (!request_str(server, countof(req), req, "block", sizeof(res), res))
 		return false;
 	if (!memcmp(res, INVALID_BLOCK, LEN))
 		return false;
