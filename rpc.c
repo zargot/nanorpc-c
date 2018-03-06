@@ -45,44 +45,22 @@ put(json_object **obj) {
 }
 
 static bool
-validate_str(string s) {
-	char c;
-	while ((c = *s++)) {
-		if (!isalnum(c) && c != '_')
-			return false;
-	}
-	return true;
-}
+encode(uint c, string v[], size_t bufmax, char *buf, size_t *len) {
+	assert(c && v && bufmax && buf && len);
 
-static bool
-encode(uint c, string v[], size_t *outlen, char **outbuf) {
-	static char buf[512];
-	memset(buf, 0, sizeof(buf));
-	int len = 0;
-
-	buf[len++] = '{';
+	DEFER_PUT json_object *json = json_object_new_object();
 	for (uint i = 0; i < c; i += 2) {
 		let key = v[i];
 		let value = v[i + 1];
-		if (validate_str(key) && validate_str(value)) {
-			let diff = snprintf(buf + len, sizeof(buf) - len,
-					"\"%s\":\"%s\",", key, value);
-			if (diff > 0) {
-				len += diff;
-				continue;
-			}
-		}
-		RET_ERR(0, "invalid key/value: %s/%s", key, value);
+		if (json_object_object_add(json, key, json_object_new_string(value)))
+			RET_ERR(false, "invalid key/value: %s/%s", key, value);
 	}
-	assert(len > 0);
-	len = fmax(len-1, 1);
-	if (len + 1 >= sizeof(buf))
-		RET_ERR(0, "buffer overflow: %d/%zu", len + 2, sizeof(buf));
-	buf[len++] = '}';
-	assert(len <= sizeof(buf));
+	let str = json_object_to_json_string_length(json, 0, len);
+	if (*len >= bufmax)
+		RET_ERR(false, "buffer overflow");
 
-	*outlen = len;
-	*outbuf = buf;
+	memcpy(buf, str, *len);
+	buf[*len] = 0;
 	return true;
 }
 
@@ -104,9 +82,9 @@ writeres(void *ptr, size_t size, size_t nmemb, void *userp) {
 
 static json_object *
 request(string server, size_t reqc, string reqv[]) {
-	char *buf;
+	static char buf[512];
 	size_t len;
-	if (!reqc || !reqv || !encode(reqc, reqv, &len, &buf))
+	if (!reqc || !reqv || !encode(reqc, reqv, sizeof(buf), buf, &len))
 		RET_ERR(NULL, "invalid request");
 
 	json_object *res = NULL;
