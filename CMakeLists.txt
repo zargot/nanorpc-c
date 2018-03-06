@@ -16,5 +16,6 @@ add_executable(nano_rpc_test
 target_link_libraries(nano_rpc_test
 	json-c
 	curl
+	m
 )
 
