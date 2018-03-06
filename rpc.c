@@ -17,8 +17,10 @@
 #define var __auto_type
 #define let var const
 
-#define RET_ERR(ret, str) { \
-	fprintf(stderr, "EE: %d:%s\n", __LINE__, str); \
+#define RET_ERR(ret, fmt, ...) { \
+	fprintf(stderr, "EE:%d: ", __LINE__); \
+	fprintf(stderr, fmt, ##__VA_ARGS__); \
+	fprintf(stderr, "\n"); \
 	return ret; \
 }
 
@@ -44,7 +46,7 @@ parse(string str) {
 	enum json_tokener_error err;
 	var json = json_tokener_parse_verbose(str, &err);
 	if (err)
-		RET_ERR(NULL, json_tokener_error_desc(err));
+		RET_ERR(NULL, "%s", json_tokener_error_desc(err));
 	return json;
 }
 
@@ -72,7 +74,7 @@ request(string server, string fmt, va_list args) {
 	let err = curl_easy_perform(curl);
 	curl_slist_free_all(ctype);
 	if (err)
-		RET_ERR(NULL, curl_easy_strerror(err));
+		RET_ERR(NULL, "%s", curl_easy_strerror(err));
 	return res;
 }
 
@@ -86,7 +88,7 @@ request_str(string server, string key, size_t len, char *buf, string fmt, ...) {
 		RET_ERR(false, "");
 	json_object *value;
 	if (!json_object_object_get_ex(res, key, &value))
-		RET_ERR(false, "invalid obj or key");
+		RET_ERR(false, "invalid obj/key: %p/%s", res, key);
 	if (!json_object_is_type(value, json_type_string))
 		RET_ERR(false, "invalid type");
 	strncpy(buf, json_object_get_string(value), len);
