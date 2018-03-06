@@ -155,12 +155,12 @@ bool
 nano_send(string acc, string dst, string amount, string guid) {
 	char res[LEN];
 	string req[] = {
-			"action", "send",
-			"wallet", wallet,
-			"source", acc,
-			"destination", dst,
-			"amount", amount,
-			"id", guid,
+		"action", "send",
+		"wallet", wallet,
+		"source", acc,
+		"destination", dst,
+		"amount", amount,
+		"id", guid,
 	};
 	if (!request_str(server, countof(req), req, "block", sizeof(res), res))
 		return false;
