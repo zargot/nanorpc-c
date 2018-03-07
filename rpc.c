@@ -17,13 +17,6 @@
 #include "common.h"
 #include "util.h"
 
-#define RET_ERR(ret, fmt, ...) { \
-	fprintf(stderr, "EE:%d: ", __LINE__); \
-	fprintf(stderr, fmt, ##__VA_ARGS__); \
-	fprintf(stderr, "\n"); \
-	return ret; \
-}
-
 #define DEFER_PUT __attribute__((cleanup(put_json))) 
 #define LEN 65
 

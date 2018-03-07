@@ -12,6 +12,13 @@
 #define forrange(i, a, b, inc) \
 	for (typeof(a + 0) i = a, i##_end = b; i < i##_end; i += inc)
 
+#define RET_ERR(ret, fmt, ...) { \
+	fprintf(stderr, "EE:%d: ", __LINE__); \
+	fprintf(stderr, fmt, ##__VA_ARGS__); \
+	fprintf(stderr, "\n"); \
+	return ret; \
+}
+
 typedef unsigned uint;
 typedef uint64_t u64;
 typedef const char *string;
