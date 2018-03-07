@@ -151,7 +151,7 @@ nano_create(char *acc) {
 		"wallet", wallet,
 	};
 	char *res[] = {
-		"account", acc
+		"account", acc,
 	};
 	return request_str(server, countof(req), req, countof(res), res);
 }
