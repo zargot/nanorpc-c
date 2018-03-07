@@ -204,9 +204,7 @@ nano_send(string acc, string dst, string amount, string guid) {
 		"block", block,
 	};
 	if (!request_str(server, countof(req), req, countof(res), res))
-		return false;
-	if (atoi(block) == 0)
-		return false;
+		RET_ERR(false, "something went wrong with the request/response");
 	return true;
 }
 
