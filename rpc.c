@@ -19,6 +19,12 @@
 #define let var const
 #define countof(a) (sizeof(a) / sizeof((a)[0]))
 
+#define forcount(i, n) \
+	for (typeof(n + 0) i = 0; i < n; i++)
+
+#define forrange(i, a, b, inc) \
+	for (typeof(a + 0) i = a, i##_end = b; i < i##_end; i += inc)
+
 #define RET_ERR(ret, fmt, ...) { \
 	fprintf(stderr, "EE:%d: ", __LINE__); \
 	fprintf(stderr, fmt, ##__VA_ARGS__); \
@@ -103,16 +109,21 @@ request(string server, size_t reqc, string reqv[]) {
 }
 
 static bool
-request_str(string server, uint reqc, string reqv[], string key, size_t len, char *buf) {
-	DEFER_PUT json_object *res = request(server, reqc, reqv);
-	if (!res)
-		RET_ERR(false, "");
-	json_object *value;
-	if (!json_object_object_get_ex(res, key, &value))
-		RET_ERR(false, "invalid obj/key: %p/%s", res, key);
-	if (!json_object_is_type(value, json_type_string))
-		RET_ERR(false, "invalid type");
-	strncpy(buf, json_object_get_string(value), len);
+request_str(string server, uint reqc, string reqv[], uint resc, char *resv[]) {
+	DEFER_PUT json_object *json = request(server, reqc, reqv);
+	if (!json)
+		return false;
+
+	forrange (i, 0, resc, 2) {
+		let key = resv[i];
+		var value = resv[i + 1];
+		json_object *jsonval;
+		if (!json_object_object_get_ex(json, key, &jsonval))
+			RET_ERR(false, "invalid obj/key: %p/%s", jsonval, key);
+		if (!json_object_is_type(jsonval, json_type_string))
+			RET_ERR(false, "invalid type");
+		strncpy(value, json_object_get_string(jsonval), LEN);
+	}
 	return true;
 }
 
@@ -139,21 +150,28 @@ nano_create(char *acc) {
 		"action", "account_create",
 		"wallet", wallet,
 	};
-	return request_str(server, countof(req), req, "account", LEN, acc);
+	char *res[] = {
+		"account", acc
+	};
+	return request_str(server, countof(req), req, countof(res), res);
 }
 
 bool
-nano_balance(string acc, char balance[LEN]) {
+nano_balance(string acc, char *balance, char *pending) {
 	string req[] = {
 		"action", "account_balance",
 		"account", acc,
 	};
-	return request_str(server, countof(req), req, "balance", LEN, balance);
+	char *res[] = {
+		"balance", balance,
+		"pending", pending,
+	};
+	return request_str(server, countof(req), req, countof(res), res);
 }
 
 bool
 nano_send(string acc, string dst, string amount, string guid) {
-	char res[LEN];
+	char block[LEN];
 	string req[] = {
 		"action", "send",
 		"wallet", wallet,
@@ -162,9 +180,12 @@ nano_send(string acc, string dst, string amount, string guid) {
 		"amount", amount,
 		"id", guid,
 	};
-	if (!request_str(server, countof(req), req, "block", sizeof(res), res))
+	char *res[] = {
+		"block", block,
+	};
+	if (!request_str(server, countof(req), req, countof(res), res))
 		return false;
-	if (!memcmp(res, INVALID_BLOCK, LEN))
+	if (!memcmp(block, INVALID_BLOCK, LEN))
 		return false;
 	return true;
 }
@@ -180,10 +201,10 @@ main(int argc, char **argv) {
 		return 2;
 	atexit(nano_quit);
 
-	char balance[LEN];
-	if (!nano_balance(argv[3], balance))
+	char balance[LEN], pending[LEN];
+	if (!nano_balance(argv[3], balance, pending))
 		return 3;
-	puts(balance);
+	printf("balance: %s, pending: %s\n", balance, pending);
 
 	return 0;
 }
