@@ -105,6 +105,11 @@ request(string server, size_t reqc, string reqv[]) {
 	curl_slist_free_all(ctype);
 	if (err)
 		RET_ERR(NULL, "%s", curl_easy_strerror(err));
+
+	string err_res = NULL;
+	if ((err_res = get_json_str(res, "error")))
+		RET_ERR(NULL, "server res: %s\n", err_res);
+
 	return res;
 }
 
