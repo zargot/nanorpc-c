@@ -149,6 +149,11 @@ nano_quit() {
 
 bool
 nano_rawtonano(string raw, char *nano) {
+	if (atoi(raw) == 0) {
+		sprintf(nano, "0");
+		return true;
+	}
+
 	string req[] = {
 		"action", "rai_from_raw",
 		"amount", raw,
