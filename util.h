@@ -20,7 +20,7 @@ static inline string
 gettime_ns_str() {
 	static char buf[32];
 	let t = gettime_ns();
-	snprintf(buf, sizeof(buf), "%f", t);
+	snprintf(buf, sizeof(buf), "%zu", t);
 	return buf;
 }
 
