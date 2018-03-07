@@ -2,7 +2,6 @@
 //
 // TODO:
 // - test create
-// - test send
 
 #include <assert.h>
 #include <ctype.h>
