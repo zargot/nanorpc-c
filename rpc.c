@@ -15,15 +15,7 @@
 #include <curl/curl.h>
 #include <json-c/json.h>
 
-#define var __auto_type
-#define let var const
-#define countof(a) (sizeof(a) / sizeof((a)[0]))
-
-#define forcount(i, n) \
-	for (typeof(n + 0) i = 0; i < n; i++)
-
-#define forrange(i, a, b, inc) \
-	for (typeof(a + 0) i = a, i##_end = b; i < i##_end; i += inc)
+#include "common.h"
 
 #define RET_ERR(ret, fmt, ...) { \
 	fprintf(stderr, "EE:%d: ", __LINE__); \
@@ -36,9 +28,6 @@
 #define LEN 64
 #define INVALID_BLOCK "0000000000000000000000000000000000000000000000000000000000000000"
 static_assert(LEN == sizeof(INVALID_BLOCK) - 1, "");
-
-typedef unsigned uint;
-typedef const char *string;
 
 static CURL *curl;
 static string server, wallet;
