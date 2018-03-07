@@ -145,6 +145,18 @@ nano_quit() {
 }
 
 bool
+nano_rawtonano(string raw, char *nano) {
+	string req[] = {
+		"action", "rai_from_raw",
+		"amount", raw,
+	};
+	char *res[] = {
+		"amount", nano,
+	};
+	return request_str(server, countof(req), req, countof(res), res);
+}
+
+bool
 nano_create(char *acc) {
 	string req[] = {
 		"action", "account_create",
@@ -204,7 +216,14 @@ main(int argc, char **argv) {
 	char balance[LEN], pending[LEN];
 	if (!nano_balance(argv[3], balance, pending))
 		return 3;
-	printf("balance: %s, pending: %s\n", balance, pending);
+
+	char balance_nano[LEN], pending_nano[LEN];
+	if (!nano_rawtonano(balance, balance_nano))
+		return 4;
+	if (!nano_rawtonano(pending, pending_nano))
+		return 4;
+
+	printf("balance: %s nano, pending: %s nano\n", balance_nano, pending_nano);
 
 	return 0;
 }
