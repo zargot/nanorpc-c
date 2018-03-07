@@ -16,6 +16,7 @@
 #include <json-c/json.h>
 
 #include "common.h"
+#include "util.h"
 
 #define RET_ERR(ret, fmt, ...) { \
 	fprintf(stderr, "EE:%d: ", __LINE__); \
@@ -35,6 +36,18 @@ put_json(json_object **obj) {
 	assert(obj);
 	if (*obj)
 		json_object_put(*obj);
+}
+
+static string
+get_json_str(json_object *json, string key) {
+	json_object *jsonval;
+	if (!json_object_object_get_ex(json, key, &jsonval))
+		if (strcmp(key, "error") != 0)
+			RET_ERR(NULL, "invalid obj/key: %p/%s", json, key);
+	if (!json_object_is_type(jsonval, json_type_string))
+		if (strcmp(key, "error") != 0)
+			RET_ERR(NULL, "invalid type");
+	return json_object_get_string(jsonval);
 }
 
 static bool
@@ -104,12 +117,10 @@ request_str(string server, uint reqc, string reqv[], uint resc, char *resv[]) {
 	forrange (i, 0, resc, 2) {
 		let key = resv[i];
 		var value = resv[i + 1];
-		json_object *jsonval;
-		if (!json_object_object_get_ex(json, key, &jsonval))
-			RET_ERR(false, "invalid obj/key: %p/%s", jsonval, key);
-		if (!json_object_is_type(jsonval, json_type_string))
-			RET_ERR(false, "invalid type");
-		strncpy(value, json_object_get_string(jsonval), LEN);
+		let str = get_json_str(json, key);
+		if (!str)
+			return false;
+		strncpy(value, str, LEN);
 	}
 	return true;
 }
@@ -189,28 +200,45 @@ nano_send(string acc, string dst, string amount, string guid) {
 	return true;
 }
 
+static void
+print_balance(string acc) {
+	printf("\n%s:\n", acc);
+
+	char balance[LEN], pending[LEN];
+	if (!nano_balance(acc, balance, pending))
+		goto err;
+
+	char balance_nano[LEN], pending_nano[LEN];
+	if (!nano_rawtonano(balance, balance_nano))
+		goto err;
+	if (!nano_rawtonano(pending, pending_nano))
+		goto err;
+
+	printf("balance: %s nano, pending: %s nano\n\n",
+			balance_nano, pending_nano);
+	return;
+err:
+	abort();
+}
+
 int
 main(int argc, char **argv) {
 	if (argc < 4) {
-		printf("usage: %s server wallet account\n", argv[0]);
+		printf("usage: %s server wallet account1 [account2]\n", argv[0]);
 		return 1;
 	}
+	const string acc1 = argv[3], acc2 = argc > 4 ? argv[4] : NULL;
 
 	if (!nano_init(argv[1], argv[2]))
 		return 2;
 	atexit(nano_quit);
 
-	char balance[LEN], pending[LEN];
-	if (!nano_balance(argv[3], balance, pending))
+	print_balance(acc1);
+	puts("sending 1 nano from account1 to account2");
+	if (!nano_send(acc1, acc2, "1000000000000000000000000", gettime_ns_str()))
 		return 3;
-
-	char balance_nano[LEN], pending_nano[LEN];
-	if (!nano_rawtonano(balance, balance_nano))
-		return 4;
-	if (!nano_rawtonano(pending, pending_nano))
-		return 4;
-
-	printf("balance: %s nano, pending: %s nano\n", balance_nano, pending_nano);
+	print_balance(acc1);
+	print_balance(acc2);
 
 	return 0;
 }
