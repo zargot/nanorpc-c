@@ -24,16 +24,14 @@
 	return ret; \
 }
 
-#define DEFER_PUT __attribute__((cleanup(put))) 
+#define DEFER_PUT __attribute__((cleanup(put_json))) 
 #define LEN 64
-#define INVALID_BLOCK "0000000000000000000000000000000000000000000000000000000000000000"
-static_assert(LEN == sizeof(INVALID_BLOCK) - 1, "");
 
 static CURL *curl;
 static string server, wallet;
 
 static void
-put(json_object **obj) {
+put_json(json_object **obj) {
 	assert(obj);
 	if (*obj)
 		json_object_put(*obj);
@@ -186,7 +184,7 @@ nano_send(string acc, string dst, string amount, string guid) {
 	};
 	if (!request_str(server, countof(req), req, countof(res), res))
 		return false;
-	if (!memcmp(block, INVALID_BLOCK, LEN))
+	if (atoi(block) == 0)
 		return false;
 	return true;
 }
