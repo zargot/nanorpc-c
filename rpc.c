@@ -190,8 +190,7 @@ nano_balance(string acc, char *balance, char *pending) {
 }
 
 bool
-nano_send(string acc, string dst, string amount, string guid) {
-	char block[LEN];
+nano_send(string acc, string dst, string amount, string guid, char *block) {
 	string req[] = {
 		"action", "send",
 		"wallet", wallet,
@@ -242,9 +241,14 @@ main(int argc, char **argv) {
 	atexit(nano_quit);
 
 	print_balance(acc1);
+
 	puts("sending 1 nano from account1 to account2");
-	if (!nano_send(acc1, acc2, "1000000000000000000000000", gettime_ns_str()))
+	let guid = gettime_ns_str();
+	char block[LEN];
+	if (!nano_send(acc1, acc2, "1000000000000000000000000", guid, block))
 		return 3;
+	puts(block);
+
 	print_balance(acc1);
 	print_balance(acc2);
 
