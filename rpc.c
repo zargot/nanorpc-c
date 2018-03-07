@@ -26,7 +26,7 @@
 }
 
 #define DEFER_PUT __attribute__((cleanup(put_json))) 
-#define LEN 64
+#define LEN 65
 
 static CURL *curl;
 static string server, wallet;
